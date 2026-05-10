@@ -65,6 +65,10 @@ npm run dev
 - メール: `aiko.tanaka@example.com`
 - パスワード: `password`
 
+## API Spec
+
+API 仕様は [`docs/api-spec.md`](docs/api-spec.md) を参照してください。
+
 ## スコープ
 
 イベント、repo、プロフィールのみを扱います。收藏、浏览历史、地图、日历は含めません。
