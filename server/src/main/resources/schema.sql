@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  department TEXT NOT NULL,
+  field TEXT NOT NULL,
+  bio TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS events (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL,
+  tags TEXT NOT NULL,
+  start_at TIMESTAMP NOT NULL,
+  location TEXT NOT NULL,
+  capacity INT NOT NULL,
+  image_url TEXT NOT NULL,
+  description TEXT NOT NULL,
+  owner_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS participants (
+  event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS reports (
+  id SERIAL PRIMARY KEY,
+  event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  author_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  visibility TEXT NOT NULL DEFAULT '社内公開',
+  likes INT NOT NULL DEFAULT 0,
+  comments TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
