@@ -1,372 +1,561 @@
-# Casual Connect API Spec
+# API Spec
 
-社内イベント交流アプリ（Casual Connect）の REST API 仕様です。  
-Base URL はローカル起動時の標準値として `http://localhost:8080` を想定します。
+## 1. Common
 
-## 共通仕様
+### Base URL
 
-- Content-Type: `application/json`
-- 認証: 現時点では簡易ログインのみ。API トークン / Cookie セッションは未実装です。
-- 日時形式:
-  - Request: `YYYY-MM-DDTHH:mm` 例: `2026-06-05T12:00`
-  - Response: Spring Boot の `LocalDateTime` JSON 形式。例: `2026-06-05T12:00:00`
-- エラー:
-  - 存在しないデータなどは `404 Not Found` を返します。
-  - エラーボディ例: `{ "message": "..." }`
+```text
+/api
+```
 
-## データモデル
+### Error Response
 
-### User
+エラー時は以下の形式で返す。
 
 ```json
 {
-  "id": 1,
-  "name": "田中 愛子",
-  "email": "aiko.tanaka@example.com",
-  "department": "プロダクト部",
-  "field": "UX / リサーチ",
-  "bio": "社内の偶発的な出会いを増やしたいです。"
+  "detail": "User Name: can not be empty",
+  "instance": "/api/users",
+  "status": 400,
+  "title": "Bad Request"
 }
 ```
 
-### Event
+---
 
-```json
-{
-  "id": 1,
-  "title": "ランチ交流：新規事業アイデアを話そう",
-  "category": "交流会",
-  "tags": "ランチ,新規事業,雑談",
-  "startAt": "2026-06-05T12:00:00",
-  "location": "本社 12F カフェ",
-  "capacity": 12,
-  "imageUrl": "https://example.com/image.jpg",
-  "description": "部署を越えて最近気になる課題やアイデアをゆるく共有します。",
-  "ownerId": 1,
-  "ownerName": "田中 愛子",
-  "participants": 3,
-  "joined": false
-}
-```
+## 2. Auth
 
-### Report
-
-```json
-{
-  "id": 1,
-  "eventId": 1,
-  "authorId": 1,
-  "eventTitle": "ランチ交流：新規事業アイデアを話そう",
-  "authorName": "田中 愛子",
-  "title": "交流会で得た気づき",
-  "body": "次回は事前テーマを1つだけ決めると話しやすそうです。",
-  "visibility": "社内公開",
-  "likes": 5,
-  "comments": "\nいいですね！",
-  "createdAt": "2026-06-05T13:00:00"
-}
-```
-
-### ProfileResponse
-
-```json
-{
-  "user": { "id": 1, "name": "田中 愛子", "email": "aiko.tanaka@example.com", "department": "プロダクト部", "field": "UX / リサーチ", "bio": "..." },
-  "events": [],
-  "reports": []
-}
-```
-
-## Auth API
-
-### Login
-
-ログイン情報に一致するユーザーを返します。
+### 2.1 Simple Login
 
 ```http
-POST /api/login
+POST /api/auth/simple-login
 ```
 
-Request body:
+#### Request
 
 ```json
 {
-  "email": "aiko.tanaka@example.com",
-  "password": "password"
+  "email": "user@example.com",
+  "name": "User Name"
 }
 ```
 
-Response `200 OK`:
+#### Response
 
 ```json
 {
   "id": 1,
-  "name": "田中 愛子",
-  "email": "aiko.tanaka@example.com",
-  "department": "プロダクト部",
-  "field": "UX / リサーチ",
-  "bio": "社内の偶発的な出会いを増やしたいです。"
+  "email": "user@example.com",
+  "name": "User Name",
+  "profileImageUrl": null
 }
 ```
 
-## Event API
+---
 
-### List events
+## 3. Users
 
-イベント一覧を返します。`category` または `tag` で絞り込みできます。`userId` を指定すると `joined` が現在ユーザー基準になります。
+### 3.1 Get User Profile
 
 ```http
-GET /api/events?category={category}&tag={tag}&userId={userId}
+GET /api/users/{userId}
 ```
 
-Query parameters:
+#### Response
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `category` | No | 完全一致カテゴリ。未指定または空文字なら全カテゴリ。 |
-| `tag` | No | `tags` に対する部分一致。未指定または空文字なら全タグ。 |
-| `userId` | No | 参加済み判定用ユーザー ID。未指定なら `0`。 |
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "User Name",
+  "bio": "I am interested in sports and technology.",
+  "field": "Engineering",
+  "profileImageUrl": "https://example.com/profile.jpg"
+}
+```
 
-Response `200 OK`:
+---
+
+### 3.2 Update User Profile
+
+```http
+PUT /api/users/{userId}
+```
+
+#### Request
+
+```json
+{
+  "name": "User Name",
+  "bio": "I am interested in sports and technology.",
+  "field": "Engineering",
+  "profileImageUrl": "https://example.com/profile.jpg"
+}
+```
+
+#### Response
+
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "User Name",
+  "bio": "I am interested in sports and technology.",
+  "field": "Engineering",
+  "profileImageUrl": "https://example.com/profile.jpg"
+}
+```
+
+---
+
+### 3.3 Get Events Created by User
+
+```http
+GET /api/users/{userId}/events
+```
+
+#### Response
 
 ```json
 [
   {
     "id": 1,
-    "title": "ランチ交流：新規事業アイデアを話そう",
-    "category": "交流会",
-    "tags": "ランチ,新規事業,雑談",
-    "startAt": "2026-06-05T12:00:00",
-    "location": "本社 12F カフェ",
-    "capacity": 12,
-    "imageUrl": "https://example.com/image.jpg",
-    "description": "部署を越えて最近気になる課題やアイデアをゆるく共有します。",
-    "ownerId": 1,
-    "ownerName": "田中 愛子",
-    "participants": 0,
-    "joined": false
+    "title": "Football Event",
+    "eventStartTime": "2026-05-20T10:00:00",
+    "eventEndTime": "2026-05-20T12:00:00",
+    "capacity": 20,
+    "participantCount": 5,
+    "location": "Tokyo",
+    "eventImageUrl": "https://example.com/event.jpg",
+    "eventStatus": "OPEN"
   }
 ]
 ```
 
-### Get event detail
+---
+
+### 3.4 Get Events Joined by User
 
 ```http
-GET /api/events/{id}?userId={userId}
+GET /api/users/{userId}/joined-events
 ```
 
-Response `200 OK`: `Event`
+#### Response
 
-### Create event
+```json
+[
+  {
+    "id": 2,
+    "title": "Study Session",
+    "eventStartTime": "2026-05-21T18:00:00",
+    "eventEndTime": "2026-05-21T20:00:00",
+    "capacity": 10,
+    "participantCount": 3,
+    "location": "Shibuya",
+    "eventImageUrl": "https://example.com/study.jpg",
+    "eventStatus": "OPEN",
+    "owner": {
+      "id": 1,
+      "name": "User Name"
+    }
+  }
+]
+```
 
-活動発起者がイベントを作成します。
+---
+
+## 4. Events
+
+### 4.1 Get Event List
+
+```http
+GET /api/events
+```
+
+#### Query Parameters
+
+```text
+status
+page
+size
+```
+
+#### Response
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "title": "Football Event",
+      "eventStartTime": "2026-05-20T10:00:00",
+      "eventEndTime": "2026-05-20T12:00:00",
+      "capacity": 20,
+      "participantCount": 5,
+      "location": "Tokyo",
+      "eventImageUrl": "https://example.com/event.jpg",
+      "eventStatus": "OPEN",
+      "owner": {
+        "id": 1,
+        "name": "User Name"
+      }
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+---
+
+### 4.2 Get Event Detail
+
+```http
+GET /api/events/{eventId}
+```
+
+#### Response
+
+```json
+{
+  "id": 1,
+  "title": "Football Event",
+  "eventStartTime": "2026-05-20T10:00:00",
+  "eventEndTime": "2026-05-20T12:00:00",
+  "capacity": 20,
+  "participantCount": 5,
+  "location": "Tokyo",
+  "description": "Let us play football together.",
+  "targetUser": "Beginners are welcome.",
+  "eventImageUrl": "https://example.com/event.jpg",
+  "eventStatus": "OPEN",
+  "owner": {
+    "id": 1,
+    "name": "User Name",
+    "profileImageUrl": "https://example.com/profile.jpg"
+  },
+  "type": {
+    "id": 1,
+    "name": "ランチ"
+  },
+  "tags": [
+    {
+      "id": 1,
+      "name": "雑談"
+    },
+    {
+      "id": 2,
+      "name": "技術"
+    }
+  ]
+}
+```
+
+---
+
+### 4.3 Create Event
 
 ```http
 POST /api/events
 ```
 
-Request body:
+#### Request
 
 ```json
 {
-  "title": "チーム横断 LT 会",
-  "category": "LT",
-  "tags": "技術,LT,交流",
-  "startAt": "2026-07-01T18:30",
-  "location": "本社 10F / オンライン",
-  "capacity": 30,
-  "imageUrl": "https://example.com/lt.jpg",
-  "description": "5分LTで最近の学びを共有します。",
+  "title": "Football Event",
+  "eventStartTime": "2026-05-20T10:00:00",
+  "eventEndTime": "2026-05-20T12:00:00",
+  "capacity": 20,
+  "location": "Tokyo",
+  "description": "Let us play football together.",
+  "targetUser": "Beginners are welcome.",
+  "eventImageUrl": "https://example.com/event.jpg",
+  "eventStatus": "OPEN",
+  "ownerId": 1,
+  "typeId": 1,
+  "tagIds": [1, 2]
+}
+```
+
+#### Response
+
+```json
+{
+  "id": 1,
+  "title": "Football Event",
+  "eventStartTime": "2026-05-20T10:00:00",
+  "eventEndTime": "2026-05-20T12:00:00",
+  "capacity": 20,
+  "participantCount": 0,
+  "location": "Tokyo",
+  "description": "Let us play football together.",
+  "targetUser": "Beginners are welcome.",
+  "eventImageUrl": "https://example.com/event.jpg",
+  "eventStatus": "OPEN",
+  "owner": {
+    "id": 1,
+    "name": "User Name"
+  },
+  "type": {
+    "id": 1,
+    "name": "ランチ"
+  },
+  "tags": [
+    {
+      "id": 1,
+      "name": "雑談"
+    },
+    {
+      "id": 2,
+      "name": "技術"
+    }
+  ]
+}
+```
+
+---
+
+### 4.4 Update Event
+
+```http
+PUT /api/events/{eventId}
+```
+
+#### Request
+
+```json
+{
+  "title": "Updated Football Event",
+  "eventStartTime": "2026-05-20T10:00:00",
+  "eventEndTime": "2026-05-20T12:30:00",
+  "capacity": 25,
+  "location": "Tokyo",
+  "description": "Updated event description.",
+  "targetUser": "Anyone interested in sports.",
+  "eventImageUrl": "https://example.com/updated-event.jpg",
+  "eventStatus": "OPEN",
+  "ownerId": 1,
+  "typeId": 1,
+  "tagIds": [1, 3]
+}
+```
+
+#### Response
+
+```json
+{
+  "id": 1,
+  "title": "Updated Football Event",
+  "eventStartTime": "2026-05-20T10:00:00",
+  "eventEndTime": "2026-05-20T12:30:00",
+  "capacity": 25,
+  "participantCount": 5,
+  "location": "Tokyo",
+  "description": "Updated event description.",
+  "targetUser": "Anyone interested in sports.",
+  "eventImageUrl": "https://example.com/updated-event.jpg",
+  "eventStatus": "OPEN",
+  "owner": {
+    "id": 1,
+    "name": "User Name"
+  },
+  "type": {
+    "id": 1,
+    "name": "ランチ"
+  },
+  "tags": [
+    {
+      "id": 1,
+      "name": "雑談"
+    },
+    {
+      "id": 3,
+      "name": "スポーツ"
+    }
+  ]
+}
+```
+
+---
+
+### 4.5 Delete Event
+
+```http
+DELETE /api/events/{eventId}
+```
+
+#### Request
+
+```json
+{
   "ownerId": 1
 }
 ```
 
-Response `200 OK`: 作成された `Event`
+#### Response
 
-### Update event
-
-作成者本人の `ownerId` が一致する場合にイベントを更新します。
-
-```http
-PUT /api/events/{id}
+```text
+No Content
 ```
 
-Request body: Create event と同じ `EventRequest`
+---
 
-Response `200 OK`: 更新後の `Event`
+## 5. Event Participants
 
-### Delete event
-
-作成者本人の `ownerId` が一致する場合にイベントを削除します。
+### 5.1 Join Event
 
 ```http
-DELETE /api/events/{id}?ownerId={ownerId}
+POST /api/events/{eventId}/participants
 ```
 
-Response `200 OK`: body なし
-
-### Join event
-
-イベントに参加します。同じユーザーの二重参加は無視されます。
-
-```http
-POST /api/events/{id}/join
-```
-
-Request body:
+#### Request
 
 ```json
 {
-  "userId": 1
+  "userId": 2
 }
 ```
 
-Response `200 OK`: body なし
+#### Response
 
-### Cancel event participation
-
-イベント参加をキャンセルします。
-
-```http
-DELETE /api/events/{id}/join?userId={userId}
+```json
+{
+  "id": 1,
+  "eventId": 1,
+  "userId": 2,
+  "joinedAt": "2026-05-11T20:30:00"
+}
 ```
 
-Response `200 OK`: body なし
+---
 
-## Report API
-
-### List reports
-
-repo 一覧を新しい順で返します。
+### 5.2 Cancel Event Participation
 
 ```http
-GET /api/reports
+DELETE /api/events/{eventId}/participants/{userId}
 ```
 
-Response `200 OK`:
+#### Response
+
+```text
+No Content
+```
+
+---
+
+### 5.3 Get Event Participants
+
+```http
+GET /api/events/{eventId}/participants
+```
+
+#### Response
+
+```json
+[
+  {
+    "id": 2,
+    "name": "User A",
+    "email": "user-a@example.com",
+    "profileImageUrl": "https://example.com/user-a.jpg",
+    "joinedAt": "2026-05-11T20:30:00"
+  },
+  {
+    "id": 3,
+    "name": "User B",
+    "email": "user-b@example.com",
+    "profileImageUrl": null,
+    "joinedAt": "2026-05-11T20:35:00"
+  }
+]
+```
+
+---
+
+## 6. Types
+
+### 6.1 Get Type List
+
+```http
+GET /api/types
+```
+
+#### Response
 
 ```json
 [
   {
     "id": 1,
-    "eventId": 1,
-    "authorId": 1,
-    "eventTitle": "ランチ交流：新規事業アイデアを話そう",
-    "authorName": "田中 愛子",
-    "title": "交流会で得た気づき",
-    "body": "次回は事前テーマを1つだけ決めると話しやすそうです。",
-    "visibility": "社内公開",
-    "likes": 0,
-    "comments": "",
-    "createdAt": "2026-06-05T13:00:00"
+    "name": "1on1"
+  },
+  {
+    "id": 2,
+    "name": "ランチ"
+  },
+  {
+    "id": 3,
+    "name": "交流会"
   }
 ]
 ```
 
-### Create report
+---
 
-活動後の参加者 memo / repo を投稿します。公開範囲は `visibility` で指定します。
+## 7. Tags
+
+### 7.1 Get Tag List
 
 ```http
-POST /api/reports
+GET /api/tags
 ```
 
-Request body:
+#### Response
 
 ```json
-{
-  "eventId": 1,
-  "authorId": 1,
-  "title": "交流会で得た気づき",
-  "body": "話した内容のうち、公開できる学びだけを短く残します。",
-  "visibility": "社内公開"
-}
+[
+  {
+    "id": 1,
+    "name": "雑談"
+  },
+  {
+    "id": 2,
+    "name": "技術"
+  },
+  {
+    "id": 3,
+    "name": "スポーツ"
+  }
+]
 ```
 
-`visibility` values:
+---
 
-- `社内公開`
-- `参加者のみ`
-- `自分のみ`
+## 8. MVP Priority
 
-Response `200 OK`: 作成された `Report`
+### Must
 
-### Like report
+| Feature | API |
+|---|---|
+| 簡易ログイン | `POST /api/auth/simple-login` |
+| イベント一覧表示 | `GET /api/events` |
+| イベント詳細表示 | `GET /api/events/{eventId}` |
+| イベント登録 | `POST /api/events` |
+| イベント参加 | `POST /api/events/{eventId}/participants` |
 
-repo にいいねします。
+### Should
 
-```http
-POST /api/reports/{id}/like
-```
-
-Response `200 OK`: body なし
-
-### Comment report
-
-repo にコメントを追加します。
-
-```http
-POST /api/reports/{id}/comments
-```
-
-Request body:
-
-```json
-{
-  "comment": "次回参加したいです！"
-}
-```
-
-Response `200 OK`: body なし
-
-## Profile API
-
-### Get profile
-
-個人ページ情報を返します。ユーザー基本情報、発起したイベント、投稿した repo を含みます。
-
-```http
-GET /api/users/{id}
-```
-
-Response `200 OK`: `ProfileResponse`
-
-### Update profile
-
-個人ページを更新します。
-
-```http
-PUT /api/users/{id}
-```
-
-Request body:
-
-```json
-{
-  "name": "田中 愛子",
-  "department": "プロダクト部",
-  "field": "UX / リサーチ",
-  "bio": "社内の偶発的な出会いを増やしたいです。"
-}
-```
-
-Response `200 OK`: 更新後の `ProfileResponse`
-
-## Endpoint Summary
-
-| Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/api/login` | ログイン |
-| `GET` | `/api/events` | イベント一覧 / category・tag filter |
-| `GET` | `/api/events/{id}` | イベント詳細 |
-| `POST` | `/api/events` | イベント作成 |
-| `PUT` | `/api/events/{id}` | イベント更新 |
-| `DELETE` | `/api/events/{id}` | イベント削除 |
-| `POST` | `/api/events/{id}/join` | イベント参加 |
-| `DELETE` | `/api/events/{id}/join` | イベント参加取消 |
-| `GET` | `/api/reports` | repo 一覧 |
-| `POST` | `/api/reports` | repo 投稿 |
-| `POST` | `/api/reports/{id}/like` | repo いいね |
-| `POST` | `/api/reports/{id}/comments` | repo コメント |
-| `GET` | `/api/users/{id}` | 個人ページ取得 |
-| `PUT` | `/api/users/{id}` | 個人ページ更新 |
+| Feature | API |
+|---|---|
+| 個人ホームページ表示 | `GET /api/users/{userId}` |
+| プロフィール編集 | `PUT /api/users/{userId}` |
+| 作成イベント一覧 | `GET /api/users/{userId}/events` |
+| 参加イベント一覧 | `GET /api/users/{userId}/joined-events` |
+| イベント編集 | `PUT /api/events/{eventId}` |
+| イベント削除 | `DELETE /api/events/{eventId}` |
+| 参加者一覧表示 | `GET /api/events/{eventId}/participants` |
+| 参加キャンセル | `DELETE /api/events/{eventId}/participants/{userId}` |
+| イベント形式一覧 | `GET /api/types` |
+| タグ一覧 | `GET /api/tags` |
