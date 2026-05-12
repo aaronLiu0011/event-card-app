@@ -43,6 +43,7 @@ server/src/main/java/padthai/
   service/
     event/
     participant/
+
 ```
 
 ## ローカル起動
