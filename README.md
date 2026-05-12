@@ -24,13 +24,26 @@ client/src/
   models/
   utils/
 
-server/src/main/java/com/example/casualconnect/
+server/src/main/java/padthai/
   controller/
-  service/
-  repository/
-  models/
+    event/
+    participant/
   dto/
+    event/request/
+    event/response/
+    participant/request/
+    participant/response/
   exception/
+  model/
+    event/
+    participant/
+  repository/
+    event/
+    participant/
+  service/
+    event/
+    participant/
+
 ```
 
 ## ローカル起動
